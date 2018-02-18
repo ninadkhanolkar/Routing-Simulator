@@ -36,9 +36,13 @@ public class Node implements Comparable<Node> {
 	// HashMap distanceVector holds the cost to each destination from this node
 	// HashMap forwardingTable holds the next hop to each destination from this
 	// node
-	private HashMap<Node, Float> distanceVector;
-	private HashMap<Node, Node> forwardingTable;
-
+	private HashMap<String, Float> distanceVector;
+	private HashMap<String, String> forwardingTable;
+        private HashMap<Node,String>nodeStringNeighborIp;
+        private HashMap<Node,String>nodeStringOwnIp;
+        private HashMap<String,Node>stringNodeNeighborIp;
+        private HashMap<String,Node>stringNodeOwnIp;
+        private HashMap<Node,String>neighborSubnet;
 	/**
 	 * Constructor for Node
 	 * 
@@ -52,10 +56,10 @@ public class Node implements Comparable<Node> {
 		messages = new HashMap<Node, Message>();
 		newMessages = false;
 		messageQueue = new Vector<Message>();
-		distanceVector = new HashMap<Node, Float>();
-		distanceVector.put(this, new Float(0));
-		forwardingTable = new HashMap<Node, Node>();
-		forwardingTable.put(this, this);
+		distanceVector = new HashMap<String, Float>();
+		//distanceVector.put(this, new Float(0));
+		forwardingTable = new HashMap<String, String>();
+		//forwardingTable.put(this, this);
 	}
 
 	/**
@@ -64,7 +68,7 @@ public class Node implements Comparable<Node> {
 	 * 
 	 * @param destinations
 	 */
-	public void updateDestinations(Collection<Node> destinations) {
+	/*public void updateDestinations(Collection<Node> destinations) {
 		for (Node n : destinations) {
 			// Only add if don't already know about n
 			if (!distanceVector.containsKey(n)) {
@@ -72,7 +76,7 @@ public class Node implements Comparable<Node> {
 				forwardingTable.put(n, null);
 			}
 		}
-	}
+	}*/
 
 	/**
 	 * Overriding method toString() so that printing a Node prints its name
@@ -101,7 +105,7 @@ public class Node implements Comparable<Node> {
 	 * @throws Exception
 	 *             when
 	 */
-	public void addNeighbor(Node neighbor, float cost) throws Exception {
+	public void addNeighbor(Node neighbor, String ipSource, String ipDestination, String subnet) throws Exception {
 		if ((costToNeighborMap.containsKey(neighbor)) || (cost < 0)) {
 			String message = "Error adding neighbor to node" + this + "("
 					+ neighbor + ", " + cost + ")"
@@ -110,11 +114,16 @@ public class Node implements Comparable<Node> {
 		}
 
 		// Add an entry for the new neighbor in the local data structures
-		costToNeighborMap.put(neighbor, cost);
+		costToNeighborMap.put(neighbor, 1);
+                nodeStringNeighborIp.put(neighbor,ipDestination);
+                nodeStringOwnIp.put(neighbor,ipSource);
+                stringNodeNeighborIp.put(ipDestination,neighbor);
+                stringNodeOwnIp.put(ipSource,neighbor);
+                neighborSubnet.put(neighbor,subnet); 
 		messages.put(neighbor, null);
-		if (!distanceVector.containsKey(neighbor)) {
-			distanceVector.put(neighbor, cost);
-			forwardingTable.put(neighbor, neighbor);
+		if (!distanceVector.containsKey(subnet)) {
+			distanceVector.put(subnet, 0);
+			forwardingTable.put(subnet, ipDestination);
 		}
 
 		// Send a message to all neighbors with this new cost info
@@ -189,8 +198,8 @@ public class Node implements Comparable<Node> {
 	 * 
 	 * @return a Collection of all possible destinations from this node
 	 */
-	protected Collection<Node> getDestinations() {
-		return new TreeSet<Node>(distanceVector.keySet());
+	protected Collection<String> getDestinations() {
+		return new TreeSet<String>(distanceVector.keySet());
 	}
 
 	/**
@@ -220,7 +229,7 @@ public class Node implements Comparable<Node> {
 	 * @return the cost from neighbor to destination as advertised in the most
 	 *         recent message received from neighbor
 	 */
-	private float getCostFromNeighborTo(Node neighbor, Node destination) {
+	private float getCostFromNeighborTo(Node neighbor, String destination) {
 		Message m = messages.get(neighbor);
 		if (m != null) {
 			return m.getCostTo(destination);
@@ -251,7 +260,7 @@ public class Node implements Comparable<Node> {
 	 * @return the cost to get from this Node to destination in our current
 	 *         distanceVector
 	 */
-	protected float getCostToDestination(Node destination) {
+	protected float getCostToDestination(String destination) {
 		return distanceVector.get(destination);
 	}
 
@@ -287,7 +296,7 @@ public class Node implements Comparable<Node> {
 			System.out.print("--------");
 		}
 		System.out.print("\n");
-		for (Node dest : getDestinations()) {
+		for (String dest : getDestinations()) {
 			System.out.print(dest + "\t|");
 			for (Node n : neighbors) {
 				String costFromNeighborTo = "";
@@ -311,7 +320,7 @@ public class Node implements Comparable<Node> {
 				+ this + ":");
 		System.out.println("Dest.\tCost (Next Hop)");
 		System.out.println("-------------------------");
-		for (Node dest : getDestinations()) {
+		for (String dest : getDestinations()) {
 			String costToDestination = "";
 			if (getCostToDestination(dest) == Float.POSITIVE_INFINITY) {
 				costToDestination = "Inf";
@@ -325,6 +334,10 @@ public class Node implements Comparable<Node> {
 		System.out.println("");
 	}
 
+        protected Collection<Node> getMessages() {
+		return new TreeSet<Node>(messages.keySet());
+	}
+
 	/**
 	 * Implements the Bellman-Ford equation to update the distanceVector costs
 	 * and forwardingTable of this node
@@ -332,10 +345,26 @@ public class Node implements Comparable<Node> {
 	public void doDistanceVectorUpdate() {
 		// STEP 1: Fill in this method
 
-		ArrayList<Node> nextNodes = new ArrayList<Node>();
-		ArrayList<Float> costs = new ArrayList<Float>();
+		//ArrayList<Node> nextNodes = new ArrayList<Node>();
+		//ArrayList<Float> costs = new ArrayList<Float>();
 		boolean somethingChanged = false;
-
+                for (Message message:this.getMessages()) {
+                        for (String subnet:message.getTable()) {
+                                if(!distanceVector.containsKey(subnet)) {
+                                        distanceVecor.put(subnet,message.costMap(subnet)+1);
+                                        forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
+                                        someThingChanged=True;
+                                }  else {
+                                        if(distanceVector.get(subnet)>(message.costMap(subnet)+1)) {
+                                                 distanceVecor.put(subnet,message.costMap(subnet)+1);
+                                                 forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
+                                                 someThingChanged=True;
+                                        }
+                                }
+                         }
+                }
+   
+                /*
 		// Loops over all possible destinations.
 		for (Node destination : getDestinations()) {
 
@@ -392,7 +421,7 @@ public class Node implements Comparable<Node> {
 
 			nextNodes.clear();
 			costs.clear();
-		}
+		}*/
 
 		// If something changed, notifies this node's neighbors.
 		if (somethingChanged) {
@@ -408,10 +437,10 @@ public class Node implements Comparable<Node> {
 	protected void notifyNeighbors() {
 		// STEP 2: Fill in this method
 
-		HashMap<Node, Float> vector = new HashMap<Node, Float>();
+		HashMap<String, Float> vector = new HashMap<String, Float>();
 
 		// Gets the node's distance vector.
-		for (Node destination : getDestinations())
+		for (String destination : getDestinations())
 			vector.put(destination, getCostToDestination(destination));
 
 		// (Not doing poisoned reverse in this implementation)

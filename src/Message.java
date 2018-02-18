@@ -17,7 +17,7 @@ import java.util.*;
  */
 public class Message {
 	private Node from;
-	private HashMap<Node,Float> costMap;
+	private HashMap<String,Float> costMap;
 
 	/**
 	 * Create a new distance vector Message
@@ -28,9 +28,9 @@ public class Message {
 	 *            is a Map with the costs to all destination nodes to be
 	 *            included in this message
 	 */
-	public Message(Node from, Map<Node,Float> costs) {
+	public Message(Node from, Map<String,Float> costs) {
 		this.from = from;
-		this.costMap = new HashMap<Node,Float>(costs);
+		this.costMap = new HashMap<String,Float>(costs);
 	}
 	
 	/**
@@ -39,12 +39,16 @@ public class Message {
 	public Node getFrom() {
 		return from;
 	}
+
+        public Collection<String> getTable() {
+		return new TreeSet<String>(costMap.keySet());
+	}
 	
 	/**
 	 * @param destination is the Node we're interested in knowing the cost to
 	 * @return the advertised cost from the sender of this message to the specified destination
 	 */
-	public float getCostTo(Node destination) {
+	public float getCostTo(String destination) {
 		if (costMap.containsKey(destination)) {
 			return costMap.get(destination);
 		} else {

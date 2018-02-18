@@ -44,6 +44,9 @@ public class Network {
 
 		String nodeName1;
 		String nodeName2;
+                String ipSource;
+                String ipDestination;
+                String subnet;
 		float cost;
 		Node node1;
 		Node node2;
@@ -60,14 +63,17 @@ public class Network {
 			tokenizer = new StringTokenizer(nextLine);
 
 			// Make sure there are three tokens (StartNode, EndNode, Cost)
-			if (tokenizer.countTokens() != 3) {
+			if (tokenizer.countTokens() != 5) {
 				throw new Exception("Improperly formatted input at line "
 						+ lineNumber);
 			}
 
 			nodeName1 = tokenizer.nextToken();
 			nodeName2 = tokenizer.nextToken();
-			cost = Float.parseFloat(tokenizer.nextToken());
+			//cost = Float.parseFloat(tokenizer.nextToken());
+                        ipSource=tokenizer.nextToken();
+                        ipDestination=tokenizer.nextToken();
+                        subnet=tokenizer.nextToken();
 
 			// Add nodeName1 to the Network if necessary
 			if (!nameToNodeMap.containsKey(nodeName1)) {
@@ -85,14 +91,14 @@ public class Network {
 				node2 = nameToNodeMap.get(nodeName2);
 			}
 
-			node1.addNeighbor(node2, cost);
+			node1.addNeighbor(node2, ipSource, ipDestination, subnet);
 			edgeCount++;
 		}
 		reader.close();
 		// Make sure each node has the full destination set
-		for (Node n : getNodes()) {
+		/*for (Node n : getNodes()) {
 			n.updateDestinations(getNodes());
-		}
+		}*/
 
 		System.out.println("Successfully loaded network from " + file);
 		System.out.println(nameToNodeMap.size() + " nodes, and " + edgeCount
