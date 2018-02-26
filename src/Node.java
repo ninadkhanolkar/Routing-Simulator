@@ -1,34 +1,19 @@
 package rip;
 import java.util.*;
 
-/**
- * This class represents one node in the network and stores all information
- * available to that node, including it's name (String), its distance vector,
- * its neighbors and the costs to get to each neighbor, and a list of the most
- * recently received message from each neighbor. In addition, the class has a
- * method to implement distance vector routing updates.
- * 
- * @author michaelrabbat
- * 
- */
 public class Node implements Comparable<Node> {
-	// Field to hold this node's name
+	
 	private String name;
+	 int counter;
 
-	// Data structure mapping this nodes neighbors to the costs of getting to
-	// each neighbor.
 	private HashMap<Node, Float> costToNeighborMap;
 
-	// Data structure to hold the most recently received message from each
-	// neighbor
+	
 	private HashMap<Node, Message> messages;
 	private boolean newMessages = false;
 	private Vector<Message> messageQueue;
 
-	// Data structures representing this nodes local distance vector information
-	// HashMap distanceVector holds the cost to each destination from this node
-	// HashMap forwardingTable holds the next hop to each destination from this
-	// node
+	
 	private HashMap<String, Float> distanceVector;
 	private HashMap<String, String> forwardingTable;
     private HashMap<Node,String>nodeStringNeighborIp;
@@ -36,14 +21,9 @@ public class Node implements Comparable<Node> {
     private HashMap<String,Node>stringNodeNeighborIp;
     private HashMap<String,Node>stringNodeOwnIp;
     private HashMap<Node,String>neighborSubnet;
-	/**
-	 * Constructor for Node
-	 * 
-	 * @param name
-	 *            is this node's name
-	 */
+    
 	public Node(String name) {
-		// Initialize this node's private fields
+		
 		this.name = name;
 		costToNeighborMap = new HashMap<Node, Float>();
 		nodeStringNeighborIp=new HashMap<Node,String>();
@@ -55,54 +35,23 @@ public class Node implements Comparable<Node> {
 		newMessages = false;
 		messageQueue = new Vector<Message>();
 		distanceVector = new HashMap<String, Float>();
-		//distanceVector.put(this, new Float(0));
+		
 		forwardingTable = new HashMap<String, String>();
-		//forwardingTable.put(this, this);
+		counter=0;
+		
 	}
 
-	/**
-	 * Method used by the Network to tell this node that the list of possible
-	 * destinations has changed.
-	 * 
-	 * @param destinations
-	 */
-	/*public void updateDestinations(Collection<Node> destinations) {
-		for (Node n : destinations) {
-			// Only add if don't already know about n
-			if (!distanceVector.containsKey(n)) {
-				distanceVector.put(n, Float.POSITIVE_INFINITY);
-				forwardingTable.put(n, null);
-			}
-		}
-	}*/
-
-	/**
-	 * Overriding method toString() so that printing a Node prints its name
-	 */
-	@Override
+	
 	public String toString() {
 		return name;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Comparable#compareTo(java.lang.Object)
-	 */
+	
 	public int compareTo(Node o) {
 		return name.compareTo(o.toString());
 	}
 
-	/**
-	 * Add a new neighbor to this node and specifies the cost to this neighbor
-	 * 
-	 * @param neighbor
-	 *            is the neighboring Node
-	 * @param cost
-	 *            is the non-negative integer cost to get to this neighbor
-	 * @throws Exception
-	 *             when
-	 */
+	
 	public void addNeighbor(Node neighbor, String ipSource, String ipDestination, String subnet) throws Exception {
 		if ((costToNeighborMap.containsKey(neighbor))) {
 			String message = "Error adding neighbor to node" + this + "("
@@ -121,7 +70,7 @@ public class Node implements Comparable<Node> {
 		messages.put(neighbor, null);
 		if (!distanceVector.containsKey(subnet)) {
 			distanceVector.put(subnet, (float)0);
-			forwardingTable.put(subnet, ipDestination);
+			forwardingTable.put(subnet, ipSource);
 		}
 
 		// Send a message to all neighbors with this new cost info
@@ -147,12 +96,7 @@ public class Node implements Comparable<Node> {
 		notifyNeighbors();
 	}
 
-	/**
-	 * Send a distance vector message to this node. Adds the message to this
-	 * node's message queue.
-	 * 
-	 * @param m
-	 */
+	
 	public void sendMessage(Message m) {
 		messageQueue.add(m);
 		newMessages = true;
@@ -162,52 +106,33 @@ public class Node implements Comparable<Node> {
 		for (int i = 0; i < messageQueue.size(); i++) {
 			Message m = messageQueue.get(i);
 			messages.put(m.getFrom(), m);
+			counter++;
 		}
 		messageQueue.clear();
 		newMessages = true;
 	}
 
-	/**
-	 * Check if this Node has received a new distance vector message from one of
-	 * its neighbors
-	 * 
-	 * @return true if it has received a new message, false otherwise
-	 */
+	
 	public boolean hasNewMessages() {
 		return newMessages;
 	}
 
-	/**
-	 * Set this node's newMessages flag to false
-	 */
+	
 	public void clearNewMessagesFlag() {
 		newMessages = false;
 	}
 
-	/**
-	 * @return a Collection of this node's neighbors
-	 */
+	
 	protected Collection<Node> getNeighbors() {
 		return new TreeSet<Node>(costToNeighborMap.keySet());
 	}
 
-	/**
-	 * Get a collection of all destinations in the network from this node
-	 * 
-	 * @return a Collection of all possible destinations from this node
-	 */
+	
 	protected Collection<String> getDestinations() {
 		return new TreeSet<String>(distanceVector.keySet());
 	}
 
-	/**
-	 * Get the cost of the link to go directly from this node to a neighbor
-	 * 
-	 * @param neighbor
-	 *            is a node directly connected to this one
-	 * @return the link cost to go directly to this neighbor, or infinity if the
-	 *         specified node isn't a neighbor
-	 */
+	
 	private float getCostToNeighbor(Node neighbor) {
 		if (costToNeighborMap.containsKey(neighbor)) {
 			return costToNeighborMap.get(neighbor);
@@ -216,17 +141,7 @@ public class Node implements Comparable<Node> {
 		}
 	}
 
-	/**
-	 * Get the cost from a neighbor to a destination, as advertised in the
-	 * latest message received from that neighbor
-	 * 
-	 * @param neighbor
-	 *            is the potential next hop
-	 * @param destination
-	 *            a potential node we are trying to get to
-	 * @return the cost from neighbor to destination as advertised in the most
-	 *         recent message received from neighbor
-	 */
+	
 	private float getCostFromNeighborTo(Node neighbor, String destination) {
 		Message m = messages.get(neighbor);
 		if (m != null) {
@@ -236,28 +151,12 @@ public class Node implements Comparable<Node> {
 		}
 	}
 
-	/**
-	 * Get the next hop listed in this nodes forwardingTable to get to a
-	 * specified destination
-	 * 
-	 * @param destination
-	 *            is another Node in the Network
-	 * @return the Node that is the next hop to get from this node to the
-	 *         specified destination
-	 */
+	
 	protected String getNextHopTo(String destination) {
 		return forwardingTable.get(destination);
 	}
 
-	/**
-	 * Get the current distanceVector entry from this node to a specified
-	 * destination
-	 * 
-	 * @param destination
-	 *            is another Node in the Network
-	 * @return the cost to get from this Node to destination in our current
-	 *         distanceVector
-	 */
+	
 	protected float getCostToDestination(String destination) {
 		return distanceVector.get(destination);
 	}
@@ -295,14 +194,13 @@ public class Node implements Comparable<Node> {
 		}
 		System.out.print("\n");
 		for (String dest : getDestinations()) {
-			System.out.print(dest + "\t|");
+			System.out.print(dest + "|");
 			for (Node n : neighbors) {
 				String costFromNeighborTo = "";
 				if (getCostFromNeighborTo(n, dest) == Float.POSITIVE_INFINITY) {
 					costFromNeighborTo = "Inf";
 				} else {
-					// costFromNeighborTo =
-					// Float.toString(getCostFromNeighborTo(n,dest));
+					
 					costFromNeighborTo = Integer
 							.toString((int) getCostFromNeighborTo(n, dest));
 				}
@@ -326,7 +224,7 @@ public class Node implements Comparable<Node> {
 				costToDestination = Integer
 						.toString((int) getCostToDestination(dest));
 			}
-			System.out.println(dest + "\t" + costToDestination + " ("
+			System.out.println(dest + "  " + costToDestination + " ("
 					+ getNextHopTo(dest) + ")");
 		}
 		System.out.println("");
@@ -341,10 +239,7 @@ public class Node implements Comparable<Node> {
 	 * and forwardingTable of this node
 	 */
 	public void doDistanceVectorUpdate() {
-		// STEP 1: Fill in this method
-
-		//ArrayList<Node> nextNodes = new ArrayList<Node>();
-		//ArrayList<Float> costs = new ArrayList<Float>();
+		
 		boolean somethingChanged = false;
                 for (Message message:getMessages()) {
                         for (String subnet:message.getTable()) {
@@ -362,78 +257,19 @@ public class Node implements Comparable<Node> {
                          }
                 }
    
-                /*
-		// Loops over all possible destinations.
-		for (Node destination : getDestinations()) {
-
-			// Loops over all neighbors.
-			// Do Bellman-Ford updates using this node's local info
-			for (Node neighbor : getNeighbors()) {
-
-				// Reinitialises the node.
-				if (this.equals(destination)) {
-
-					nextNodes.add(this);
-					costs.add(0.0f);
-
-				} else {
-
-					Float cost = this.getCostToNeighbor(neighbor);
-
-					if ((this.messages.containsKey(destination)))
-						cost += this.getCostFromNeighborTo(neighbor,
-								destination);
-					else
-						cost += neighbor.getCostToDestination(destination);
-
-					nextNodes.add(neighbor);
-					costs.add(cost);
-				}
-			}
-
-			Float minimumDistance = Float.POSITIVE_INFINITY;
-			Node nextHop = null;
-
-			// Gets minimum distance and Hop.
-			for (int i = 0; i < costs.size() && i < nextNodes.size(); i++) {
-
-				if (costs.get(i) < minimumDistance) {
-
-					minimumDistance = costs.get(i);
-					nextHop = nextNodes.get(i);
-				}
-			}
-
-			try {
-				// Updates the distance if different from stored value.
-				if (minimumDistance != this.getCostToDestination(destination)) {
-
-					this.updateDistanceVector(destination, minimumDistance);
-					this.updateForwardingTable(destination, nextHop);
-					somethingChanged = true;
-
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			nextNodes.clear();
-			costs.clear();
-		}*/
-
-		// If something changed, notifies this node's neighbors.
+                		// If something changed, notifies this node's neighbors.
 		if (somethingChanged) {
 
 			this.notifyNeighbors();
 			somethingChanged = false;
 		}
+		messages = new HashMap<Node, Message>();
+		
 	}
 
-	/**
-	 * Sends distance vector messages to all neighbors of this node
-	 */
+	
 	protected void notifyNeighbors() {
-		// STEP 2: Fill in this method
+		
 
 		HashMap<String, Float> vector = new HashMap<String, Float>();
 
@@ -451,11 +287,7 @@ public class Node implements Comparable<Node> {
 			neighbor.sendMessage(message);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Comparable#equals(java.lang.Object)
-	 */
+	
 	public boolean equals(Node o) {
 		return name.compareTo(o.toString()) == 0;
 	}

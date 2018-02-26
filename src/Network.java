@@ -1,42 +1,23 @@
 package rip;
 
 
-/**
- * ECSE 414 - Homework Assignment 4, Problem 4
- * Michael Rabbat
- * McGill University
- * michael.rabbat@mcgillca
- * 24 October 2009
- */
 
 import java.io.*;
 import java.util.*;
 
-/**
- * @author michaelrabbat
- * 
- */
+
 public class Network {
 	// Data structure to store the nodes in this network, indexed by name
 	protected HashMap<String, Node> nameToNodeMap;
+	int cnt;
 
-	/**
-	 * Construct a network from a text file description. Each line of the file
-	 * describes one directed link and should be of the form "A B 5" where A is
-	 * the start of the link, B is the end of the link, and 5 is the cost of the
-	 * link in this direction. Costs must be non-negative. Node names should be
-	 * strings that do not contain white space. Lines that are blank or that
-	 * begin with a '#' character are ignored (treated as comments).
-	 * 
-	 * @param file
-	 *            input file describing this network
-	 * @throws Exception
-	 */
+	
 	public Network(File file) throws Exception {
 		// Initialize the nodeToNameMap
 		nameToNodeMap = new HashMap<String, Node>();
 		
 		loadNetworkFromFile(file);
+		cnt=0;
 	}
 
 	protected void loadNetworkFromFile(File file) throws Exception {
@@ -155,21 +136,23 @@ public class Network {
 		return false;
 	}
 	
-	/**
-	 * Deliver all messages waiting in queues at a node
-	 */
+	
 	public void deliverMessages() {
 		for (Node node : getNodes()) {
 			node.deliverMessageQueue();
 		}
 	}
 
-	/**
-	 * Iterate over all nodes and do distance vector updates on nodes with new
-	 * messages
-	 */
+	public int messageCnt() {
+		for (Node n:getNodes()) {
+			cnt=cnt+n.counter;
+		}
+		return cnt;
+	}
+	
 	public void doDistanceVectorUpdates() {
 		for (Node node : getNodes()) {
+			node.printLatestMessages();
 			System.out.println("-----------------------------------------------------------");
 			if (node.hasNewMessages()) {
 				System.out.println("Updating node " + node);
@@ -180,7 +163,7 @@ public class Network {
 			}
 			System.out.println("");
 			
-			node.printLatestMessages();
+			
 			node.printDistanceVector();
 		}
 	}
