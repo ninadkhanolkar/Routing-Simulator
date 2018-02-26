@@ -1,3 +1,6 @@
+package rip;
+
+
 /**
  * ECSE 414 - Homework Assignment 4, Problem 4
  * Michael Rabbat
@@ -92,6 +95,7 @@ public class Network {
 			}
 
 			node1.addNeighbor(node2, ipSource, ipDestination, subnet);
+			node2.addNeighbor(node1, ipDestination, ipSource, subnet);
 			edgeCount++;
 		}
 		reader.close();

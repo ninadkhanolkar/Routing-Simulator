@@ -1,3 +1,4 @@
+package rip;
 /**
  * ECSE 414 - Homework Assignment 4, Problem 4
  * Michael Rabbat
@@ -15,8 +16,9 @@ import java.util.*;
  * @author michaelrabbat
  * 
  */
-public class Message {
+public class Message implements Comparable<Message> {
 	private Node from;
+	private String  name;
 	private HashMap<String,Float> costMap;
 
 	/**
@@ -31,6 +33,15 @@ public class Message {
 	public Message(Node from, Map<String,Float> costs) {
 		this.from = from;
 		this.costMap = new HashMap<String,Float>(costs);
+		name=from.toString();
+	}
+	
+	public String toString() {
+		return name;
+	}
+	
+	public int compareTo(Message o) {
+		return name.compareTo(o.toString());
 	}
 	
 	/**
@@ -38,6 +49,10 @@ public class Message {
 	 */
 	public Node getFrom() {
 		return from;
+	}
+	
+	public Float getCostMap(String s) {
+		return costMap.get(s);
 	}
 
         public Collection<String> getTable() {

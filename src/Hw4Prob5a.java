@@ -1,3 +1,5 @@
+package rip;
+
 /**
  * ECSE 414 - Homework Assignment 4, Problem 5
  * Michael Rabbat

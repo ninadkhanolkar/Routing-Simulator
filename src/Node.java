@@ -1,11 +1,4 @@
-/**
- * ECSE 414 - Homework Assignment 4, Problem 4
- * Michael Rabbat
- * McGill University
- * michael.rabbat@mcgillca
- * 24 October 2009
- */
-
+package rip;
 import java.util.*;
 
 /**
@@ -38,11 +31,11 @@ public class Node implements Comparable<Node> {
 	// node
 	private HashMap<String, Float> distanceVector;
 	private HashMap<String, String> forwardingTable;
-        private HashMap<Node,String>nodeStringNeighborIp;
-        private HashMap<Node,String>nodeStringOwnIp;
-        private HashMap<String,Node>stringNodeNeighborIp;
-        private HashMap<String,Node>stringNodeOwnIp;
-        private HashMap<Node,String>neighborSubnet;
+    private HashMap<Node,String>nodeStringNeighborIp;
+    private HashMap<Node,String>nodeStringOwnIp;
+    private HashMap<String,Node>stringNodeNeighborIp;
+    private HashMap<String,Node>stringNodeOwnIp;
+    private HashMap<Node,String>neighborSubnet;
 	/**
 	 * Constructor for Node
 	 * 
@@ -53,6 +46,11 @@ public class Node implements Comparable<Node> {
 		// Initialize this node's private fields
 		this.name = name;
 		costToNeighborMap = new HashMap<Node, Float>();
+		nodeStringNeighborIp=new HashMap<Node,String>();
+		nodeStringOwnIp=new HashMap<Node,String>();
+		stringNodeNeighborIp=new HashMap<String,Node>();
+		stringNodeOwnIp=new HashMap<String,Node>();
+		neighborSubnet=new HashMap<Node,String>();
 		messages = new HashMap<Node, Message>();
 		newMessages = false;
 		messageQueue = new Vector<Message>();
@@ -106,15 +104,15 @@ public class Node implements Comparable<Node> {
 	 *             when
 	 */
 	public void addNeighbor(Node neighbor, String ipSource, String ipDestination, String subnet) throws Exception {
-		if ((costToNeighborMap.containsKey(neighbor)) || (cost < 0)) {
+		if ((costToNeighborMap.containsKey(neighbor))) {
 			String message = "Error adding neighbor to node" + this + "("
-					+ neighbor + ", " + cost + ")"
+					+ neighbor + ", "+")"
 					+ "\nCan't have duplicate links or negative costs";
 			throw new Exception(message);
 		}
 
 		// Add an entry for the new neighbor in the local data structures
-		costToNeighborMap.put(neighbor, 1);
+		costToNeighborMap.put(neighbor,(float)1);
                 nodeStringNeighborIp.put(neighbor,ipDestination);
                 nodeStringOwnIp.put(neighbor,ipSource);
                 stringNodeNeighborIp.put(ipDestination,neighbor);
@@ -122,7 +120,7 @@ public class Node implements Comparable<Node> {
                 neighborSubnet.put(neighbor,subnet); 
 		messages.put(neighbor, null);
 		if (!distanceVector.containsKey(subnet)) {
-			distanceVector.put(subnet, 0);
+			distanceVector.put(subnet, (float)0);
 			forwardingTable.put(subnet, ipDestination);
 		}
 
@@ -247,7 +245,7 @@ public class Node implements Comparable<Node> {
 	 * @return the Node that is the next hop to get from this node to the
 	 *         specified destination
 	 */
-	protected Node getNextHopTo(Node destination) {
+	protected String getNextHopTo(String destination) {
 		return forwardingTable.get(destination);
 	}
 
@@ -264,7 +262,7 @@ public class Node implements Comparable<Node> {
 		return distanceVector.get(destination);
 	}
 
-	private void updateDistanceVector(Node destination, float cost)
+	private void updateDistanceVector(String destination, float cost)
 			throws Exception {
 		if (cost > 0) {
 			distanceVector.put(destination, cost);
@@ -273,9 +271,9 @@ public class Node implements Comparable<Node> {
 		}
 	}
 
-	private void updateForwardingTable(Node destination, Node nextHop)
+	private void updateForwardingTable(String destination, String nextHop)
 			throws Exception {
-		if ((!costToNeighborMap.containsKey(nextHop)) && (nextHop != this)) {
+		if ((!costToNeighborMap.containsKey(stringNodeNeighborIp.get(nextHop))) && (stringNodeNeighborIp.get(nextHop) != this)) {
 			throw new Exception(
 					"Trying to add a forwarding table entry to a node that isn't a neighbor");
 		}
@@ -334,8 +332,8 @@ public class Node implements Comparable<Node> {
 		System.out.println("");
 	}
 
-        protected Collection<Node> getMessages() {
-		return new TreeSet<Node>(messages.keySet());
+        protected Collection<Message> getMessages() {
+		return new TreeSet<Message>(messages.values());
 	}
 
 	/**
@@ -348,17 +346,17 @@ public class Node implements Comparable<Node> {
 		//ArrayList<Node> nextNodes = new ArrayList<Node>();
 		//ArrayList<Float> costs = new ArrayList<Float>();
 		boolean somethingChanged = false;
-                for (Message message:this.getMessages()) {
+                for (Message message:getMessages()) {
                         for (String subnet:message.getTable()) {
                                 if(!distanceVector.containsKey(subnet)) {
-                                        distanceVecor.put(subnet,message.costMap(subnet)+1);
+                                        distanceVector.put(subnet,message.getCostMap(subnet)+1);
                                         forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
-                                        someThingChanged=True;
+                                        somethingChanged=true;
                                 }  else {
-                                        if(distanceVector.get(subnet)>(message.costMap(subnet)+1)) {
-                                                 distanceVecor.put(subnet,message.costMap(subnet)+1);
+                                        if(distanceVector.get(subnet)>(message.getCostMap(subnet)+1)) {
+                                                 distanceVector.put(subnet,message.getCostMap(subnet)+1);
                                                  forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
-                                                 someThingChanged=True;
+                                                 somethingChanged=true;
                                         }
                                 }
                          }
