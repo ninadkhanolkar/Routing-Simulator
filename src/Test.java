@@ -1,33 +1,16 @@
-/**
- * ECSE 414 - Homework Assignment 4, Problem 5
- * Michael Rabbat
- * McGill University
- * michael.rabbat@mcgillca
- */
+package rip;
+
 
 import java.io.File;
 
-/**
- * This class only implements the main method for Problem 4 of HW Assignment 4.
- * 
- * @author michaelrabbat
- * 
- */
-public class Hw4Prob5a {
 
-	/**
-	 * Main method that takes one command line argument, which is the name of
-	 * the network file. After loading the network from file, carry out distance
-	 * vector updates until no more messages are transmitted.
-	 * 
-	 * @param args
-	 *            should only have one entry which is the name of the network
-	 *            file
-	 */
+public class Test {
+
+	
 	public static void main(String[] args) {
 		// Check for the right number of arguments
 		if (args.length != 1) {
-			System.out.println("Usage: java Hw4Prob5a networkFile");
+			System.out.println("Invalid File");
 			System.exit(1);
 		}
 		
@@ -48,6 +31,7 @@ public class Hw4Prob5a {
 				network.deliverMessages();
 				network.doDistanceVectorUpdates();
 			}
+			System.out.println("The number of messages exchanged is "+network.messageCnt());
 		} catch (Exception e) {
 			System.out.println("Error loading the network from file: " + args[0]);
 			e.printStackTrace();
