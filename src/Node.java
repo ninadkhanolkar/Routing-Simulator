@@ -78,22 +78,23 @@ public class Node implements Comparable<Node> {
 	}
 
 	public void changeCostToNeighbor(Node neighbor, float cost)
-			throws Exception {
-		if (!costToNeighborMap.containsKey(neighbor)) {
-			throw new Exception(
-					"Trying to change cost to a node that isn't already a neighbor");
+	 {
+	   if (!costToNeighborMap.containsKey(neighbor)) {
+				System.out.println("Trying to change cost to a node that isn't already a neighbor");
 		}
 
 		// Change the cost to this neighbor
+	   else {
 		costToNeighborMap.put(neighbor, cost);
+	   }
 
 		// Update the local routing info (distance vector and forwarding table)
 		// with the new cost
-		doDistanceVectorUpdate();
-		clearNewMessagesFlag();
+		//doDistanceVectorUpdate();
+		//clearNewMessagesFlag();
 
 		// Notify neighbors of the change
-		notifyNeighbors();
+		//notifyNeighbors();
 	}
 
 	
@@ -110,6 +111,41 @@ public class Node implements Comparable<Node> {
 		}
 		messageQueue.clear();
 		newMessages = true;
+	}
+	
+	public void timerLinkDeletion() {
+		float cost;
+		String ownIp;
+		String neighborIp;
+		Collection<Node> neighbors = getNeighbors();
+		for (Node n : neighbors) {
+			cost=costToNeighborMap.get(n);
+			
+			if(cost>1) {
+				cost=cost+1;
+				changeCostToNeighbor(n,cost);
+				System.out.println(cost+"  "+this);
+			}
+			if(cost==7) {
+				//ownIp = nodeStringOwnIp.get(n)
+				neighborIp = nodeStringNeighborIp.get(n);
+				Collection<String> destinations=getDestinationsForwardingTable();
+				for(String entry:destinations) {
+					if(forwardingTable.get(entry)==neighborIp)
+					{
+						forwardingTable.remove(entry);
+						distanceVector.put(entry, (float)16);
+					}
+				}
+				
+				
+				
+			}
+			if(cost==11) {
+				costToNeighborMap.remove(n);
+			}
+		}
+		
 	}
 
 	
@@ -131,9 +167,13 @@ public class Node implements Comparable<Node> {
 	protected Collection<String> getDestinations() {
 		return new TreeSet<String>(distanceVector.keySet());
 	}
+	
+	protected Collection<String> getDestinationsForwardingTable() {
+		return new TreeSet<String>(forwardingTable.keySet());
+	}
 
 	
-	private float getCostToNeighbor(Node neighbor) {
+	public float getCostToNeighbor(Node neighbor) {
 		if (costToNeighborMap.containsKey(neighbor)) {
 			return costToNeighborMap.get(neighbor);
 		} else {
@@ -247,8 +287,14 @@ public class Node implements Comparable<Node> {
                                         distanceVector.put(subnet,message.getCostMap(subnet)+1);
                                         forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
                                         somethingChanged=true;
-                                }  else {
-                                        if(distanceVector.get(subnet)>(message.getCostMap(subnet)+1)) {
+                                }  else 
+                                {
+                                	if(nodeStringNeighborIp.get(message.getFrom())==forwardingTable.get(subnet) && (message.getCostMap(subnet)+1!=distanceVector.get(subnet))) {
+                            	    	distanceVector.put(subnet,message.getCostMap(subnet)+1);
+                            	    	somethingChanged=true;
+                            	    }
+
+                                	else if(distanceVector.get(subnet)>(message.getCostMap(subnet)+1)) {
                                                  distanceVector.put(subnet,message.getCostMap(subnet)+1);
                                                  forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
                                                  somethingChanged=true;
@@ -283,10 +329,47 @@ public class Node implements Comparable<Node> {
 		Message message = new Message(this, vector);
 
 		// Send the message to every neighbor.
-		for (Node neighbor : getNeighbors())
-			neighbor.sendMessage(message);
+		for (Node neighbor : getNeighbors()) {
+			if(getCostToNeighbor(neighbor)==1)
+			     neighbor.sendMessage(message);
+		}
 	}
-
+	
+	
+	public String IPtoSubnet(String destination)
+	{   String[] destinationparts=destination.split(".");
+	
+	    String destinationinbinarystring="";
+	    for(String x:destinationparts)
+		  {  String y=String.format("%8s", Integer.toBinaryString((Integer.parseInt(x)))).replace(' ', '0');
+			//subparts1.add(Integer.parseInt(x));
+		  destinationinbinarystring.concat(y);
+		  }
+	     for(String string: this.forwardingTable.keySet())
+	  {   
+		  
+		  String[] parts=string.split("/");
+		  int size=Integer.parseInt(parts[1]);
+		  String[] subparts=parts[0].split(".");
+		  //List<Integer> subparts1 = new ArrayList<Integer>();
+		  String subnetinbinarystring="";
+		  for(String x:subparts)
+		  {  String y=String.format("%8s", Integer.toBinaryString((Integer.parseInt(x)))).replace(' ', '0');
+			//subparts1.add(Integer.parseInt(x));
+			 subnetinbinarystring.concat(y);
+		  }
+		  String prefix=subnetinbinarystring.substring(0, size);
+	      
+		   if(destinationinbinarystring.startsWith(prefix))
+	       {
+	    	   return (String)forwardingTable.get(string);
+	       }
+	  
+	  }
+	     return null;
+	
+	}
+ 
 	
 	public boolean equals(Node o) {
 		return name.compareTo(o.toString()) == 0;

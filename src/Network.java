@@ -19,6 +19,17 @@ public class Network {
 		loadNetworkFromFile(file);
 		cnt=0;
 	}
+	
+	protected void linkDeletion(String linkDel1, String linkDel2) throws Exception {
+		float cost;
+		Node nodeDel1= getNode(linkDel1);
+		Node nodeDel2= getNode(linkDel2);
+		cost=nodeDel1.getCostToNeighbor(nodeDel2);
+		nodeDel1.changeCostToNeighbor(nodeDel2,cost+1);
+		cost=nodeDel2.getCostToNeighbor(nodeDel1);
+		nodeDel2.changeCostToNeighbor(nodeDel1,cost+1);
+		
+	}
 
 	protected void loadNetworkFromFile(File file) throws Exception {
 		// Declare and initialize IO variables used read the network from file
@@ -142,6 +153,19 @@ public class Network {
 			node.deliverMessageQueue();
 		}
 	}
+	
+	public void doNotifyNeighbors() {
+		System.out.println("iter");
+		for (Node node: getNodes()) {
+			node.notifyNeighbors();
+		}
+	}
+	
+	public void doTimerLinkDeletion() {
+		for (Node node:getNodes()) {
+			node.timerLinkDeletion();
+		}
+	}
 
 	public int messageCnt() {
 		for (Node n:getNodes()) {
@@ -152,7 +176,7 @@ public class Network {
 	
 	public void doDistanceVectorUpdates() {
 		for (Node node : getNodes()) {
-			node.printLatestMessages();
+			//node.printLatestMessages();
 			System.out.println("-----------------------------------------------------------");
 			if (node.hasNewMessages()) {
 				System.out.println("Updating node " + node);
@@ -164,7 +188,7 @@ public class Network {
 			System.out.println("");
 			
 			
-			node.printDistanceVector();
+			//node.printDistanceVector();
 		}
 	}
 }
