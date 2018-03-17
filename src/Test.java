@@ -30,13 +30,16 @@ public class Test {
 				System.out.println("T=" + t);
 				network.deliverMessages();
 				network.doDistanceVectorUpdates();
+				
 			}
 			System.out.println("The number of messages exchanged is "+network.messageCnt());
 			RipThread t1=new RipThread(network);
-			Thread thread=new Thread(t1,"T2");
-			thread.start();
-			Thread thread1=new Thread(t1,"T1");
-			thread1.start();
+			//Thread thread=new Thread(t1,"T2");
+			//thread.start();
+			//Thread thread1=new Thread(t1,"T1");
+			//thread1.start();
+			Thread thread2=new Thread(t1,"T3");
+			thread2.start();
 		} catch (Exception e) {
 			System.out.println("Error loading the network from file: " + args[0]);
 			e.printStackTrace();

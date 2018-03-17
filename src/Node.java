@@ -1,6 +1,8 @@
 package rip;
 import java.util.*;
 
+
+
 public class Node implements Comparable<Node> {
 	
 	private String name;
@@ -18,7 +20,7 @@ public class Node implements Comparable<Node> {
 	private HashMap<String, String> forwardingTable;
     private HashMap<Node,String>nodeStringNeighborIp;
     private HashMap<Node,String>nodeStringOwnIp;
-    private HashMap<String,Node>stringNodeNeighborIp;
+    public HashMap<String,Node>stringNodeNeighborIp;
     private HashMap<String,Node>stringNodeOwnIp;
     private HashMap<Node,String>neighborSubnet;
     
@@ -70,7 +72,7 @@ public class Node implements Comparable<Node> {
 		messages.put(neighbor, null);
 		if (!distanceVector.containsKey(subnet)) {
 			distanceVector.put(subnet, (float)0);
-			forwardingTable.put(subnet, ipSource);
+			forwardingTable.put(subnet, ipDestination);
 		}
 
 		// Send a message to all neighbors with this new cost info
@@ -137,11 +139,15 @@ public class Node implements Comparable<Node> {
 						distanceVector.put(entry, (float)16);
 					}
 				}
-				
-				
-				
 			}
 			if(cost==11) {
+				costToNeighborMap.remove(n);
+				Collection<String> entries = getDestinations();
+				for(String entry:entries) {
+					if(distanceVector.get(entry)==16) {
+					distanceVector.remove(entry);
+				}
+			}
 				costToNeighborMap.remove(n);
 			}
 		}
@@ -177,7 +183,7 @@ public class Node implements Comparable<Node> {
 		if (costToNeighborMap.containsKey(neighbor)) {
 			return costToNeighborMap.get(neighbor);
 		} else {
-			return Float.POSITIVE_INFINITY;
+			return (16);
 		}
 	}
 
@@ -187,7 +193,7 @@ public class Node implements Comparable<Node> {
 		if (m != null) {
 			return m.getCostTo(destination);
 		} else {
-			return Float.POSITIVE_INFINITY;
+			return 16;
 		}
 	}
 
@@ -237,7 +243,7 @@ public class Node implements Comparable<Node> {
 			System.out.print(dest + "|");
 			for (Node n : neighbors) {
 				String costFromNeighborTo = "";
-				if (getCostFromNeighborTo(n, dest) == Float.POSITIVE_INFINITY) {
+				if (getCostFromNeighborTo(n, dest) == 16) {
 					costFromNeighborTo = "Inf";
 				} else {
 					
@@ -258,7 +264,7 @@ public class Node implements Comparable<Node> {
 		System.out.println("-------------------------");
 		for (String dest : getDestinations()) {
 			String costToDestination = "";
-			if (getCostToDestination(dest) == Float.POSITIVE_INFINITY) {
+			if (getCostToDestination(dest) == 16) {
 				costToDestination = "Inf";
 			} else {
 				costToDestination = Integer
@@ -288,10 +294,17 @@ public class Node implements Comparable<Node> {
                                         forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
                                         somethingChanged=true;
                                 }  else 
-                                {
+                                {   
                                 	if(nodeStringNeighborIp.get(message.getFrom())==forwardingTable.get(subnet) && (message.getCostMap(subnet)+1!=distanceVector.get(subnet))) {
-                            	    	distanceVector.put(subnet,message.getCostMap(subnet)+1);
-                            	    	somethingChanged=true;
+                            	    	System.out.println(subnet+"   "+neighborSubnet.get(message.getFrom()));
+                            	    	System.out.println(distanceVector.get(subnet)+"   "+(message.getCostMap(subnet)+1));
+                                		if(!subnet.equals(neighborSubnet.get(message.getFrom())))
+                            	    	{
+                            	    		System.out.println("updating");
+                            	    		distanceVector.put(subnet,message.getCostMap(subnet)+1);
+                                            somethingChanged=true;
+                            	    	}
+                                
                             	    }
 
                                 	else if(distanceVector.get(subnet)>(message.getCostMap(subnet)+1)) {
@@ -337,36 +350,49 @@ public class Node implements Comparable<Node> {
 	
 	
 	public String IPtoSubnet(String destination)
-	{   String[] destinationparts=destination.split(".");
+	{   String[] destinationparts=destination.split("\\.");
+          // System.out.println(destinationparts[0]);
 	
 	    String destinationinbinarystring="";
 	    for(String x:destinationparts)
-		  {  String y=String.format("%8s", Integer.toBinaryString((Integer.parseInt(x)))).replace(' ', '0');
+		  { 
+	          //System.out.println(x);
+
+	    	String y=String.format("%8s", Integer.toBinaryString((Integer.parseInt(x)))).replace(' ', '0');
+
 			//subparts1.add(Integer.parseInt(x));
-		  destinationinbinarystring.concat(y);
+	    	destinationinbinarystring=destinationinbinarystring.concat(y);
 		  }
+        //System.out.println(destinationinbinarystring);
+       // System.out.println("a");
+
+
 	     for(String string: this.forwardingTable.keySet())
 	  {   
+	    //	 System.out.println(string);
 		  
 		  String[] parts=string.split("/");
 		  int size=Integer.parseInt(parts[1]);
-		  String[] subparts=parts[0].split(".");
+		  String[] subparts=parts[0].split("\\.");
 		  //List<Integer> subparts1 = new ArrayList<Integer>();
 		  String subnetinbinarystring="";
 		  for(String x:subparts)
 		  {  String y=String.format("%8s", Integer.toBinaryString((Integer.parseInt(x)))).replace(' ', '0');
 			//subparts1.add(Integer.parseInt(x));
-			 subnetinbinarystring.concat(y);
+		  subnetinbinarystring=subnetinbinarystring.concat(y);
 		  }
+          //System.out.println("e");
+          //System.out.println(subnetinbinarystring);
 		  String prefix=subnetinbinarystring.substring(0, size);
+		  //System.out.println(prefix);
 	      
 		   if(destinationinbinarystring.startsWith(prefix))
 	       {
-	    	   return (String)forwardingTable.get(string);
+	    	   return (String)string;
 	       }
 	  
 	  }
-	     return null;
+	     return "No Path";
 	
 	}
  

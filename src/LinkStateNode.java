@@ -1,0 +1,493 @@
+package routing_simulator;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.TreeSet;
+import java.util.Vector;
+
+public class LinkStateNode implements Comparable<LinkStateNode>{
+	private String name;
+	 int counter;
+	 static int num;
+	 int[] visited;
+	 static float[][] topology;
+	 float[] distance;
+	 static HashMap<LinkStateNode, Integer> routerToIndex;
+	 static HashMap<Integer, LinkStateNode> indexToRouter;
+	 
+
+	private HashMap<LinkStateNode, Float> costToNeighborMap;
+	private HashMap<LinkStateNode, ArrayList<LinkStateNode>> linkStateForwardingTable;
+
+	
+	//private HashMap<Node, Message> messages;
+	//private boolean newMessages = false;
+	//private Vector<Message> messageQueue;
+
+	
+	private HashMap<String, Float> distanceVector;
+	private HashMap<String, String> forwardingTable;
+   private HashMap<LinkStateNode,String>nodeStringNeighborIp;
+   private HashMap<LinkStateNode,String>nodeStringOwnIp;
+   private HashMap<String,LinkStateNode>stringNodeNeighborIp;
+   private HashMap<String,LinkStateNode>stringNodeOwnIp;
+   private HashMap<LinkStateNode,String>neighborSubnet;
+   
+	public LinkStateNode(String name) {
+		
+		this.name = name;
+		costToNeighborMap = new HashMap<LinkStateNode, Float>();
+		nodeStringNeighborIp=new HashMap<LinkStateNode,String>();
+		nodeStringOwnIp=new HashMap<LinkStateNode,String>();
+		stringNodeNeighborIp=new HashMap<String,LinkStateNode>();
+		stringNodeOwnIp=new HashMap<String,LinkStateNode>();
+		neighborSubnet=new HashMap<LinkStateNode,String>();
+		//messages = new HashMap<Node, Message>();
+		//newMessages = false;
+		//messageQueue = new Vector<Message>();
+		distanceVector = new HashMap<String, Float>();
+		
+		forwardingTable = new HashMap<String, String>();
+		linkStateForwardingTable = new HashMap<LinkStateNode, ArrayList<LinkStateNode>>();
+		counter=0;
+		
+	}
+	
+	public void initialisationNonStatic(int n) {
+		visited = new int[n];
+		distance = new float[n];
+		for(int i=0;i<n;i++) {
+			visited[i]=0;
+			distance[i]=-1;
+		}
+	}
+
+	public static void initialisation(int n) {
+		int i,j;
+		num = n;
+		routerToIndex = new HashMap<LinkStateNode, Integer>();
+		indexToRouter = new HashMap<Integer, LinkStateNode>();
+		//visited = new int[num];
+		topology = new float[num][num];
+		//distance = new int[num];
+		for(i=0;i<num;i++) {
+			for(j=0;j<num;j++) {
+				if(i==j)
+					topology[i][j]=0;
+				else
+					topology[i][j]=-1;
+			}
+		}
+		
+	}
+	
+	public String toString() {
+		return name;
+	}
+
+	
+	public int compareTo(LinkStateNode o) {
+		return name.compareTo(o.toString());
+	}
+
+	
+	public void addNeighbor(LinkStateNode neighbor, String ipSource, String ipDestination, String subnet, float cost) throws Exception {
+		if ((costToNeighborMap.containsKey(neighbor))) {
+			String message = "Error adding neighbor to node" + this + "("
+					+ neighbor + ", "+")"
+					+ "\nCan't have duplicate links or negative costs";
+			throw new Exception(message);
+		}
+
+		// Add an entry for the new neighbor in the local data structures
+		costToNeighborMap.put(neighbor,cost);
+               nodeStringNeighborIp.put(neighbor,ipDestination);
+               nodeStringOwnIp.put(neighbor,ipSource);
+               stringNodeNeighborIp.put(ipDestination,neighbor);
+               stringNodeOwnIp.put(ipSource,neighbor);
+               neighborSubnet.put(neighbor,subnet); 
+		//messages.put(neighbor, null);
+		if (!distanceVector.containsKey(subnet)) {
+			distanceVector.put(subnet, (float)0);
+			forwardingTable.put(subnet, ipSource);
+		}
+
+		// Send a message to all neighbors with this new cost info
+		//notifyNeighbors();
+	}
+
+	public void changeCostToNeighbor(LinkStateNode neighbor, float cost)
+	 {
+	   if (!costToNeighborMap.containsKey(neighbor)) {
+				System.out.println("Trying to change cost to a node that isn't already a neighbor");
+		}
+
+		// Change the cost to this neighbor
+	   else {
+		costToNeighborMap.put(neighbor, cost);
+	   }
+
+		// Update the local routing info (distance vector and forwarding table)
+		// with the new cost
+		//doDistanceVectorUpdate();
+		//clearNewMessagesFlag();
+
+		// Notify neighbors of the change
+		//notifyNeighbors();
+	}
+
+	
+	/*public void sendMessage(Message m) {
+		messageQueue.add(m);
+		newMessages = true;
+	}
+
+	public void deliverMessageQueue() {
+		for (int i = 0; i < messageQueue.size(); i++) {
+			Message m = messageQueue.get(i);
+			messages.put(m.getFrom(), m);
+			counter++;
+		}
+		messageQueue.clear();
+		newMessages = true;
+	}*/
+	
+	public void timerLinkDeletion() {
+		float cost;
+		
+		String neighborIp;
+		Collection<LinkStateNode> neighbors = getNeighbors();
+		for (LinkStateNode n : neighbors) {
+			cost=costToNeighborMap.get(n);
+			
+			if(cost>1) {
+				cost=cost+1;
+				changeCostToNeighbor(n,cost);
+				System.out.println(cost+"  "+this);
+			}
+			if(cost==7) {
+				//ownIp = nodeStringOwnIp.get(n)
+				neighborIp = nodeStringNeighborIp.get(n);
+				Collection<String> destinations=getDestinationsForwardingTable();
+				for(String entry:destinations) {
+					if(forwardingTable.get(entry)==neighborIp)
+					{
+						forwardingTable.remove(entry);
+						distanceVector.put(entry, (float)16);
+					}
+				}
+				
+				
+				
+			}
+			if(cost==11) {
+				costToNeighborMap.remove(n);
+			}
+		}
+		
+	}
+
+	
+	/*public boolean hasNewMessages() {
+		return newMessages;
+	}
+
+	
+	public void clearNewMessagesFlag() {
+		newMessages = false;
+	}*/
+
+	
+	protected Collection<LinkStateNode> getNeighbors() {
+		return new TreeSet<LinkStateNode>(costToNeighborMap.keySet());
+	}
+
+	
+	protected Collection<String> getDestinations() {
+		return new TreeSet<String>(distanceVector.keySet());
+	}
+	
+	protected Collection<String> getDestinationsForwardingTable() {
+		return new TreeSet<String>(forwardingTable.keySet());
+	}
+
+	
+	public float getCostToNeighbor(Node neighbor) {
+		if (costToNeighborMap.containsKey(neighbor)) {
+			return costToNeighborMap.get(neighbor);
+		} else {
+			return Float.POSITIVE_INFINITY;
+		}
+	}
+
+	
+	/*private float getCostFromNeighborTo(LinkStateNode neighbor, String destination) {
+		Message m = messages.get(neighbor);
+		if (m != null) {
+			return m.getCostTo(destination);
+		} else {
+			return Float.POSITIVE_INFINITY;
+		}
+	}
+*/
+	
+	protected String getNextHopTo(String destination) {
+		return forwardingTable.get(destination);
+	}
+
+	
+	protected float getCostToDestination(String destination) {
+		return distanceVector.get(destination);
+	}
+
+	private void updateDistanceVector(String destination, float cost)
+			throws Exception {
+		if (cost > 0) {
+			distanceVector.put(destination, cost);
+		} else {
+			throw new Exception("Costs can't be negative");
+		}
+	}
+
+	private void updateForwardingTable(String destination, String nextHop)
+			throws Exception {
+		if ((!costToNeighborMap.containsKey(stringNodeNeighborIp.get(nextHop))) && (stringNodeNeighborIp.get(nextHop) != this)) {
+			throw new Exception(
+					"Trying to add a forwarding table entry to a node that isn't a neighbor");
+		}
+		forwardingTable.put(destination, nextHop);
+	}
+
+	/*public void printLatestMessages() {
+		System.out.println("Latest messages received by node " + this + ":");
+		System.out.println("      \t| Neighbors");
+		System.out.print("Dest. \t|");
+		Collection<LinkStateNode> neighbors = getNeighbors();
+		for (LinkStateNode n : neighbors) {
+			System.out.print("\t" + n);
+		}
+		System.out.print("\n");
+		System.out.print("---------------");
+		for (int i = 0; i < neighbors.size(); i++) {
+			System.out.print("--------");
+		}
+		System.out.print("\n");
+		for (String dest : getDestinations()) {
+			System.out.print(dest + "|");
+			for (LinkStateNode n : neighbors) {
+				String costFromNeighborTo = "";
+				if (getCostFromNeighborTo(n, dest) == Float.POSITIVE_INFINITY) {
+					costFromNeighborTo = "Inf";
+				} else {
+					
+					costFromNeighborTo = Integer
+							.toString((int) getCostFromNeighborTo(n, dest));
+				}
+				System.out.print("\t" + costFromNeighborTo);
+			}
+			System.out.print("\n");
+		}
+		System.out.println(" ");
+	}
+*/
+	public void printDistanceVector() {
+		System.out.println("Distance vector and forwarding table for node "
+				+ this + ":");
+		System.out.println("Dest.\tCost (Next Hop)");
+		System.out.println("-------------------------");
+		for (String dest : getDestinations()) {
+			String costToDestination = "";
+			if (getCostToDestination(dest) == Float.POSITIVE_INFINITY) {
+				costToDestination = "Inf";
+			} else {
+				costToDestination = Integer
+						.toString((int) getCostToDestination(dest));
+			}
+			System.out.println(dest + "  " + costToDestination + " ("
+					+ getNextHopTo(dest) + ")");
+		}
+		System.out.println("");
+	}
+
+      /* protected Collection<Message> getMessages() {
+		return new TreeSet<Message>(messages.values());
+	}*/
+
+	/**
+	 * Implements the Bellman-Ford equation to update the distanceVector costs
+	 * and forwardingTable of this node
+	 */
+	
+	public void doRoutingTableUpdate() {
+		int index,nextNode;
+		float min;
+		index = routerToIndex.get(this);
+		visited[index]=1;
+		for(int i=0; i<num; i++)
+	   	distance[i]=topology[index][i];
+	      //System.out.println(num);
+	      
+		  for (int counter = 0; counter < num-1; counter++)
+	        {
+			    //System.out.print(Arrays.toString(distance));
+			    min = 999;
+	            nextNode=-1;
+	            for (int i = 0; i < num; i++)
+	            {
+	                if (min > distance[i] && distance[i]!=-1  && visited[i]!=1)
+	                {
+	                    min = distance[i];
+	                    nextNode = i;
+	                }
+	            }
+	            //System.out.println(this);
+	            //System.out.println(nextNode);
+	            visited[nextNode] = 1;
+	            ArrayList<LinkStateNode> a1=new ArrayList<LinkStateNode>();
+	            
+	            if(!linkStateForwardingTable.containsKey(indexToRouter.get(nextNode))) {
+	            	a1.add(indexToRouter.get(nextNode));
+	            	linkStateForwardingTable.put(indexToRouter.get(nextNode), a1);
+	            }
+	            else {
+	            	a1=linkStateForwardingTable.get(indexToRouter.get(nextNode));
+	            	
+	            }
+	            	
+	            	   
+	            for (int i = 0; i < num; i++)
+	            {
+	                if (visited[i]!=1)
+	                {
+	                    if (topology[nextNode][i]!=-1 &&(min+topology[nextNode][i] <= distance[i] || distance[i]==-1))
+	                    {
+	                        if(min+topology[nextNode][i]!=distance[i]) {
+	                        	distance[i] = min+topology[nextNode][i];
+	                            //preD[i] = nextNode;
+	                            linkStateForwardingTable.put(indexToRouter.get(i), new ArrayList<LinkStateNode>(a1));
+	                        }
+	                        else {
+	                        	ArrayList<LinkStateNode> a2=linkStateForwardingTable.get(indexToRouter.get(i));
+	                        	a2.addAll(a1);
+	                        }
+	                    	     
+	                    }
+	 
+	                }
+	 
+	            }
+	 
+	        }
+		  this.printLinkStateForwardingTable();
+		
+	}
+	public void printLinkStateForwardingTable()
+	{
+		    System.out.println(this);
+		for(LinkStateNode n1:linkStateForwardingTable.keySet()) {
+			System.out.print(n1);
+			ArrayList<LinkStateNode> a1=linkStateForwardingTable.get(n1);
+			System.out.println(Arrays.toString(a1.toArray()));
+			System.out.println();
+		}
+	}
+	/*public void doDistanceVectorUpdate() {
+		
+		boolean somethingChanged = false;
+               for (Message message:getMessages()) {
+                       for (String subnet:message.getTable()) {
+                               if(!distanceVector.containsKey(subnet)) {
+                                       distanceVector.put(subnet,message.getCostMap(subnet)+1);
+                                       forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
+                                       somethingChanged=true;
+                               }  else 
+                               {
+                               	if(nodeStringNeighborIp.get(message.getFrom())==forwardingTable.get(subnet) && (message.getCostMap(subnet)+1!=distanceVector.get(subnet))) {
+                           	    	distanceVector.put(subnet,message.getCostMap(subnet)+1);
+                           	    	somethingChanged=true;
+                           	    }
+
+                               	else if(distanceVector.get(subnet)>(message.getCostMap(subnet)+1)) {
+                                                distanceVector.put(subnet,message.getCostMap(subnet)+1);
+                                                forwardingTable.put(subnet,nodeStringNeighborIp.get(message.getFrom()));
+                                                somethingChanged=true;
+                                       }
+                               }
+                        }
+               }
+  
+               		// If something changed, notifies this node's neighbors.
+		if (somethingChanged) {
+
+			this.notifyNeighbors();
+			somethingChanged = false;
+		}
+		messages = new HashMap<Node, Message>();
+		
+	}*/
+
+	
+	/*protected void notifyNeighbors() {
+		
+
+		HashMap<String, Float> vector = new HashMap<String, Float>();
+
+		// Gets the node's distance vector.
+		for (String destination : getDestinations())
+			vector.put(destination, getCostToDestination(destination));
+
+		// (Not doing poisoned reverse in this implementation)
+
+		// Compiles the node's distance vector.
+		Message message = new Message(this, vector);
+
+		// Send the message to every neighbor.
+		for (Node neighbor : getNeighbors()) {
+			if(getCostToNeighbor(neighbor)==1)
+			     neighbor.sendMessage(message);
+		}
+	}*/
+	
+	
+	public String IPtoSubnet(String destination)
+	{   String[] destinationparts=destination.split(".");
+	
+	    String destinationinbinarystring="";
+	    for(String x:destinationparts)
+		  {  String y=String.format("%8s", Integer.toBinaryString((Integer.parseInt(x)))).replace(' ', '0');
+			//subparts1.add(Integer.parseInt(x));
+		  destinationinbinarystring.concat(y);
+		  }
+	     for(String string: this.forwardingTable.keySet())
+	  {   
+		  
+		  String[] parts=string.split("/");
+		  int size=Integer.parseInt(parts[1]);
+		  String[] subparts=parts[0].split(".");
+		  //List<Integer> subparts1 = new ArrayList<Integer>();
+		  String subnetinbinarystring="";
+		  for(String x:subparts)
+		  {  String y=String.format("%8s", Integer.toBinaryString((Integer.parseInt(x)))).replace(' ', '0');
+			//subparts1.add(Integer.parseInt(x));
+			 subnetinbinarystring.concat(y);
+		  }
+		  String prefix=subnetinbinarystring.substring(0, size);
+	      
+		   if(destinationinbinarystring.startsWith(prefix))
+	       {
+	    	   return (String)forwardingTable.get(string);
+	       }
+	  
+	  }
+	     return null;
+	
+	}
+
+	
+	public boolean equals(Node o) {
+		return name.compareTo(o.toString()) == 0;
+	}
+
+}

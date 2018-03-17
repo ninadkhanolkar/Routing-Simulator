@@ -102,6 +102,33 @@ public class Network {
 		System.out.println("");
 	}
 	
+	public Vector<String> findPath(String sourceNodeName, String destIp) {
+		Vector<String> path = new Vector<String>();
+		String nextHop="";
+		int flag=1;
+		Node sourceNode = nameToNodeMap.get(sourceNodeName);
+        //System.out.println("b");
+
+		String destSubnet =sourceNode.IPtoSubnet(destIp);
+        System.out.println(destSubnet);
+
+		while(flag==1) {
+			nextHop=sourceNode.getNextHopTo(destSubnet);
+			//System.out.println(nextHop);
+			if(!nextHop.equals(destIp)) {
+			path.add(nextHop);
+			sourceNode=sourceNode.stringNodeNeighborIp.get(nextHop);
+			//flag=0;
+			}
+			else {
+				path.add(nextHop);
+				flag=0;
+			}
+				//return path;
+		}
+		return path;
+		
+	}
 	/**
 	 * @return a Collection of the Nodes in this network
 	 */
